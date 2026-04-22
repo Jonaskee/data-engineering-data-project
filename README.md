@@ -13,6 +13,7 @@ Deze repository bevat een geautomatiseerde data pipeline, gedreven door Apache A
   4. `export_csv`
 
 ## Datasets
+!!! folder extra_datasets bevat nog niets, download deze via digitap data engineering. En zet productie_combined, sun_combined en v_wind_alles_compleet csv bestanden in de folder extra_datasets. !!! verwijder consumptie.csv. !!!
 
 Na een succesvolle run zijn 4 tabellen aanwezig in de Postgres database. Bron-mapping volgens opdracht-spec:
 
