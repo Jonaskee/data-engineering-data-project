@@ -114,5 +114,13 @@ De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde t
 
    > Zorg dat je eerst de pipeline hebt uitgevoerd (stap 3) voordat je data in Grafana verwacht.
 
+## Claude MCP Integratie
+
+Om de educatieve MCP (Model Context Protocol) server toe te voegen aan je lokale Claude omgeving, voer je het volgende commando uit. Dit zorgt ervoor dat Claude de lokale server herkent en de tools uit het script kan gebruiken:
+
+```bash
+claude mcp add mijn-educatieve-mcp python mcp_server.py
+```
+## Voorbeeld uivoer
 ![airflow pipeline](dag.png)
 ![grafana visualisatie](image.png)
