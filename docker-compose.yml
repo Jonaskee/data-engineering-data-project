@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: energie_db
+    restart: always
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_DB: ${PGDATABASE}
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: energie_pgadmin
+    restart: always
+    depends_on:
+      - db
+    env_file: .env
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+  airflow:
+    image: apache/airflow:2.9.3-python3.11
+    container_name: energie_airflow
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # Binnen Docker netwerk praat de app met 'db', niet localhost
+      PGHOST: db
+      PYTHONPATH: /app
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /app/dags
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      # Airflow metadata DB in de bestaande Postgres
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${PGUSER}:${PGPASSWORD}@db:5432/${PGDATABASE}
+      # Extra packages die niet in de airflow image zitten
+      _PIP_ADDITIONAL_REQUIREMENTS: python-dotenv
+      # Zorg dat stdout direct zichtbaar is in logs
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - airflow-logs:/opt/airflow/logs
+    # 'standalone' start webserver + scheduler + triggerer + maakt admin user aan
+    command: bash -c "airflow standalone"
+
+volumes:
+  pgdata:
+  pgadmin-data:
+  airflow-logs:

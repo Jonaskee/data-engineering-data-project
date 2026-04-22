@@ -1,0 +1,78 @@
+"""Airflow DAG die de complete energie-data pipeline orchestreert.
+
+Tasks (volgorde):
+    elia  ─┐
+           ├─> consumptie ─┐
+    ev   ──┘                ├─> export_csv
+    extra_datasets ────────┘
+"""
+
+from __future__ import annotations
+
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# Zorg dat de project-root op de PYTHONPATH staat zodat we pipelines/ kunnen importeren
+PROJECT_ROOT = Path("/app")
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+
+def _get_engine():
+    from db import get_engine
+    return get_engine()
+
+
+def task_elia(**_):
+    from pipelines.elia import run_elia_pipeline
+    run_elia_pipeline(_get_engine())
+
+
+def task_vlaanderen(**_):
+    from pipelines.energie_vlaanderen import run_vlaanderen_pipeline
+    run_vlaanderen_pipeline(_get_engine())
+
+
+def task_consumptie(**_):
+    from pipelines.combine_data import run_consumptie_combine
+    run_consumptie_combine(_get_engine())
+
+
+def task_extra_datasets(**_):
+    from pipelines.extra_datasets import run_extra_datasets_pipeline
+    run_extra_datasets_pipeline(_get_engine())
+
+
+def task_export_csv(**_):
+    from pipelines.export_csv import export_all_tables_to_csv
+    export_all_tables_to_csv(_get_engine())
+
+
+default_args = {
+    "owner": "consumptie-groep",
+    "retries": 1,
+    "retry_delay": timedelta(minutes=2),
+}
+
+with DAG(
+    dag_id="energie_pipeline",
+    description="Haalt Elia + Energie Vlaanderen op, bouwt consumptie-tabel, laadt extra_datasets (productie/wind/zon), exporteert naar CSV.",
+    start_date=datetime(2026, 1, 1),
+    schedule=None,  # manueel triggeren
+    catchup=False,
+    default_args=default_args,
+    tags=["energie", "data-eng-project"],
+) as dag:
+
+    t_elia = PythonOperator(task_id="elia", python_callable=task_elia)
+    t_vlaanderen = PythonOperator(task_id="energie_vlaanderen", python_callable=task_vlaanderen)
+    t_consumptie = PythonOperator(task_id="consumptie_combine", python_callable=task_consumptie)
+    t_extra = PythonOperator(task_id="extra_datasets", python_callable=task_extra_datasets)
+    t_export = PythonOperator(task_id="export_csv", python_callable=task_export_csv)
+
+    [t_elia, t_vlaanderen] >> t_consumptie
+    [t_consumptie, t_extra] >> t_export

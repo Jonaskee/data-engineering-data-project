@@ -1,0 +1,23 @@
+# Environments
+.env
+
+# Data
+data/
+extra_datasets/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# IDEs and Tools
+.vscode/
+.idea/
+.claude/
+
+# Virtual environments
+venv/
+env/
+.venv/
