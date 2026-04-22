@@ -122,5 +122,9 @@ Om de educatieve MCP (Model Context Protocol) server toe te voegen aan je lokale
 claude mcp add mijn-educatieve-mcp python mcp_server.py
 ```
 ## Voorbeeld uivoer
+### airflow pipeline
 ![airflow pipeline](dag.png)
+### grafana visualisatie
 ![grafana visualisatie](image.png)
+### mcp server test met claude code
+![mcp server](mcp.png)
