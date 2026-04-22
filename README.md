@@ -112,3 +112,6 @@ De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde t
    | Totale productie vs verbruik | `consumptie` + `productie` | MW |
 
    > Zorg dat je eerst de pipeline hebt uitgevoerd (stap 3) voordat je data in Grafana verwacht.
+
+![airflow pipeline](dag.png)
+![grafana visualisatie](image.png)
