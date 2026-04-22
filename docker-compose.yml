@@ -59,7 +59,26 @@ services:
     # 'standalone' start webserver + scheduler + triggerer + maakt admin user aan
     command: bash -c "airflow standalone"
 
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: energie_grafana
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+
 volumes:
   pgdata:
   pgadmin-data:
   airflow-logs:
+  grafana-data:

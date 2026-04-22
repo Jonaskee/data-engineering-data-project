@@ -91,3 +91,24 @@ De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde t
    ```bash
    docker exec energie_airflow airflow dags trigger energie_pipeline
    ```
+
+4. **Grafana Dashboard:**
+    docker compose up -d grafana
+
+   - **Grafana UI:** [http://localhost:3000](http://localhost:3000)
+     - Login: `admin`
+     - Wachtwoord: `admin`
+
+   Het dashboard **"Energie Dashboard"** wordt automatisch geladen via provisioning (geen handmatige configuratie nodig). De PostgreSQL datasource is al geconfigureerd.
+
+   Het dashboard bevat 5 panelen:
+
+   | Paneel | Tabel | Eenheid |
+   |--------|-------|---------|
+   | Elektriciteitsverbruik (Elia) | `consumptie` | MW |
+   | Productie per bron | `productie` | MW |
+   | Zonnestraling Antwerpen | `zon` | W/m² |
+   | Windsnelheid | `wind` | km/h |
+   | Totale productie vs verbruik | `consumptie` + `productie` | MW |
+
+   > Zorg dat je eerst de pipeline hebt uitgevoerd (stap 3) voordat je data in Grafana verwacht.

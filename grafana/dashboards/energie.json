@@ -1,0 +1,184 @@
+{
+  "title": "Energie Dashboard",
+  "uid": "energie-overzicht",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-90d", "to": "now" },
+  "timezone": "browser",
+  "tags": ["energie", "data-eng"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Elektriciteitsverbruik (Elia) — MW",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 },
+          "color": { "mode": "fixed", "fixedColor": "#5794F2" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT tijd AS time, elia_total_load_mw * 1000000 AS \"Verbruik (W)\" FROM consumptie WHERE $__timeFilter(tijd) ORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Productie per bron — MW",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Elia Zon (W)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#FF9830" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Vlaanderen Zon (W)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#FADE2A" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Elia Wind (W)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#73BF69" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Vlaanderen Wind (W)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#37872D" } }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT tijd AS time, elia_zon_mw * 1000000 AS \"Elia Zon (W)\", vlaanderen_zon_mw * 1000000 AS \"Vlaanderen Zon (W)\", elia_wind_mw * 1000000 AS \"Elia Wind (W)\", vlaanderen_wind_mw * 1000000 AS \"Vlaanderen Wind (W)\" FROM productie WHERE $__timeFilter(tijd) ORDER BY 1",
+          "format": "time_series",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Zonnestraling Antwerpen — W/m²",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "wm2",
+          "custom": { "lineWidth": 1, "fillOpacity": 20 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Globaal (W/m²)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#FF9830" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Direct (W/m²)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#FADE2A" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Diffuus (W/m²)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#E0B400" } }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT tijdstip AS time, ecmwf_radiation_wm2 AS \"Globaal (W/m²)\", ecmwf_direct_wm2 AS \"Direct (W/m²)\", ecmwf_diffuse_wm2 AS \"Diffuus (W/m²)\" FROM zon WHERE $__timeFilter(tijdstip) ORDER BY 1",
+          "format": "time_series",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Windsnelheid — km/h",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocitykmh",
+          "custom": { "lineWidth": 1, "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT tijdstip AS time, wind_ecmwf_2026_kmh AS \"ECMWF 2026 (km/h)\", wind_kmi_2002_kmh AS \"KMI 2002 (km/h)\", wind_ukkel_2024_kmh AS \"Ukkel 2024 (km/h)\", wind_antwerpen_archive_kmh AS \"Antwerpen Archief (km/h)\" FROM wind WHERE $__timeFilter(tijdstip) ORDER BY 1",
+          "format": "time_series",
+          "refId": "D",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Totale productie vs verbruik — MW",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Verbruik (W)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#F2495C" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Totale Productie (W)" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#73BF69" } }]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT c.tijd AS time, c.elia_total_load_mw * 1000000 AS \"Verbruik (W)\", (p.elia_zon_mw + p.elia_wind_mw + COALESCE(p.vlaanderen_zon_mw, 0) + COALESCE(p.vlaanderen_wind_mw, 0)) * 1000000 AS \"Totale Productie (W)\" FROM consumptie c JOIN productie p ON DATE_TRUNC('hour', c.tijd) = DATE_TRUNC('hour', p.tijd) WHERE $__timeFilter(c.tijd) ORDER BY 1",
+          "format": "time_series",
+          "refId": "E"
+        }
+      ]
+    }
+  ]
+}

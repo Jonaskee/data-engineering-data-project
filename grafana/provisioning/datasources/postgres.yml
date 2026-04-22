@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL
+    type: postgres
+    uid: energie_postgres
+    url: db:5432
+    user: data_user
+    secureJsonData:
+      password: super_geheim_wachtwoord
+    jsonData:
+      database: energie_vlaanderen_db
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1600
+      timescaledb: false
+    editable: true
