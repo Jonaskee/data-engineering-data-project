@@ -37,6 +37,12 @@ def task_vlaanderen(**_):
     run_vlaanderen_pipeline(_get_engine())
 
 
+def task_kaggle(**_):
+    # Skipt netjes als de CSVs niet in data/kaggle/ staan
+    from pipelines.kaggle import run_kaggle_pipeline
+    run_kaggle_pipeline(_get_engine())
+
+
 def task_consumptie(**_):
     from pipelines.combine_data import run_consumptie_combine
     run_consumptie_combine(_get_engine())
@@ -45,6 +51,11 @@ def task_consumptie(**_):
 def task_extra_datasets(**_):
     from pipelines.extra_datasets import run_extra_datasets_pipeline
     run_extra_datasets_pipeline(_get_engine())
+
+
+def task_normalize(**_):
+    from pipelines.normalize import run_normalize_pipeline
+    run_normalize_pipeline(_get_engine())
 
 
 def task_export_csv(**_):
@@ -70,9 +81,11 @@ with DAG(
 
     t_elia = PythonOperator(task_id="elia", python_callable=task_elia)
     t_vlaanderen = PythonOperator(task_id="energie_vlaanderen", python_callable=task_vlaanderen)
+    t_kaggle = PythonOperator(task_id="kaggle", python_callable=task_kaggle)
     t_consumptie = PythonOperator(task_id="consumptie_combine", python_callable=task_consumptie)
     t_extra = PythonOperator(task_id="extra_datasets", python_callable=task_extra_datasets)
+    t_normalize = PythonOperator(task_id="normalize_units", python_callable=task_normalize)
     t_export = PythonOperator(task_id="export_csv", python_callable=task_export_csv)
 
-    [t_elia, t_vlaanderen] >> t_consumptie
-    [t_consumptie, t_extra] >> t_export
+    [t_elia, t_vlaanderen, t_kaggle] >> t_consumptie
+    [t_consumptie, t_extra] >> t_normalize >> t_export

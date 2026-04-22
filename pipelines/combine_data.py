@@ -27,8 +27,10 @@ def run_consumptie_combine(engine):
     has_elia = load_col is not None
     has_ev_solar = "vlaanderen_energie_solar" in tables
     has_ev_wind = "vlaanderen_energie_wind" in tables
+    has_kaggle_district = "kaggle_district_raw" in tables
+    has_kaggle_private = "kaggle_private_raw" in tables
 
-    if not (has_elia or has_ev_solar or has_ev_wind):
+    if not (has_elia or has_ev_solar or has_ev_wind or has_kaggle_district or has_kaggle_private):
         print("  Geen bronnen gevonden voor consumptie-tabel. Skipping.")
         return
 
@@ -67,6 +69,26 @@ def run_consumptie_combine(engine):
         selects.append("w.ev_wind_mw")
         joins.append("LEFT JOIN ev_wind w USING(tijd)")
 
+    if has_kaggle_district:
+        ctes.append("""kaggle_openbaar AS (
+            SELECT DATE_TRUNC('hour', time) AS tijd,
+                   SUM(total_calc) / 1000.0 AS kaggle_openbaar_mw
+            FROM kaggle_district_raw
+            GROUP BY 1
+        )""")
+        selects.append("kd.kaggle_openbaar_mw")
+        joins.append("LEFT JOIN kaggle_openbaar kd USING(tijd)")
+
+    if has_kaggle_private:
+        ctes.append("""kaggle_prive AS (
+            SELECT DATE_TRUNC('hour', time) AS tijd,
+                   SUM(power_kw) / 1000.0 AS kaggle_prive_mw
+            FROM kaggle_private_raw
+            GROUP BY 1
+        )""")
+        selects.append("kp.kaggle_prive_mw")
+        joins.append("LEFT JOIN kaggle_prive kp USING(tijd)")
+
     union_parts = []
     if has_elia:
         union_parts.append("SELECT tijd FROM elia")
@@ -74,6 +96,10 @@ def run_consumptie_combine(engine):
         union_parts.append("SELECT tijd FROM ev_solar")
     if has_ev_wind:
         union_parts.append("SELECT tijd FROM ev_wind")
+    if has_kaggle_district:
+        union_parts.append("SELECT tijd FROM kaggle_openbaar")
+    if has_kaggle_private:
+        union_parts.append("SELECT tijd FROM kaggle_prive")
     ctes.append("all_hours AS (\n    " + "\n    UNION ".join(union_parts) + "\n)")
 
     sql = f"""
