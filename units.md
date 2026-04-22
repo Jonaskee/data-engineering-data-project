@@ -1,148 +1,146 @@
 # Units & Preprocessing — Data Engineering project
 
-Dit document beschrijft de kolommen, eenheden en datakwaliteit van de 4 finale tabellen
-(`consumptie`, `productie`, `wind`, `zon`) in de lokale Postgres.
+Dit document beschrijft de 4 finale tabellen (`consumptie`, `productie`, `wind`, `zon`) in de lokale Postgres, zoals ze in de database staan **na** de volledige pipeline (fetch + combine + normalize). Cijfers gebaseerd op laatste succesvolle run (2026-04-22).
+
+Date-window wordt gestuurd door `FILTER_START` / `FILTER_END` in `.env` (default: 2024-01-01 → 2026-03-31).
 
 ---
 
-## 1. Staat VÓÓR normalisatie (initiële laad vanuit bronnen)
+## 1. Finale schema's
 
-### `consumptie` (240 rijen, uurlijks, 2026-02-01 → 2026-02-10)
+### `consumptie` — Elia totale belasting België
+**19.704 rijen · uurlijks · 2024-01-01 → 2026-03-31**
 
-| Kolom | Type | Unit | Bron | Opmerking |
-|---|---|---|---|---|
-| `tijd` | `timestamp` (naive) | — | DATE_TRUNC('hour', …) | UTC, geen tz-info |
-| `elia_total_load_mw` | `double` | **MW** | Elia `ods001` | Nationale belasting België, 8318–13049 |
-| `ev_zon_mw` | `double` | **MW** | Energie Vlaanderen `realtime_solar_*` | Som per uur over alle gemeenten, 0–3799 |
-| `ev_wind_mw` | `double` | **MW** | Energie Vlaanderen `realtime_wind_*` | Som per uur over alle gemeenten, 95–1231 |
+| Kolom | Type | Unit | Bereik |
+|---|---|---|---|
+| `tijd` | `timestamp` (naive UTC) | — | — |
+| `elia_total_load_mw` | `double` | MW | 6.121 – 14.303 (gem. 9.330) |
 
-### `productie` (9192 rijen, uurlijks, 2025-02-28 → 2026-03-18)
+Bron: Elia `ods001` (kwartierresolutie, geaggregeerd via `DATE_TRUNC('hour')` + `AVG()` in `pipelines/combine_data.py`).
+
+### `productie` — Zon/wind-productie België + Vlaanderen
+**9.192 rijen · uurlijks · 2025-02-28 → 2026-03-18**
+
+| Kolom | Type | Unit | Bereik |
+|---|---|---|---|
+| `tijd` | `timestamptz` | — | — |
+| `vlaanderen_zon_mw` | `double` | MW | na ÷1000 conversie |
+| `vlaanderen_wind_mw` | `double` | MW | 0,28 – 1.825 |
+| `elia_zon_mw` | `double` | MW | — |
+| `elia_wind_mw` | `double` | MW | 0,31 – 901 |
+
+Bron: `extra_datasets/productie_combined.csv` (input van productie-groep). Originele kolommen waren in kWh met `_kwh` suffix; `normalize_units` deelt door 1000 en hernoemt naar `_mw`.
+
+### `wind` — Windsnelheidsmetingen
+**1.137.675 rijen · uurlijks · 2005-11-10 → 2026-03-24**
 
 | Kolom | Type | Unit | Opmerking |
 |---|---|---|---|
-| `tijd` | **`text`** | — | Bv. `"2025-02-28 23:00:00+00:00"` — moet cast naar timestamptz |
-| `vlaanderen_zon_kwh` | `double` | **kWh** | Per uur |
-| `vlaanderen_wind_kwh` | `double` | **kWh** | Per uur |
-| `elia_zon_kwh` | `double` | **kWh** | Per uur |
-| `elia_wind_kwh` | `double` | **kWh** | Per uur |
+| `tijdstip` | `timestamptz` | — | UTC |
+| `wind_ecmwf_2026_kmh` | `double` | km/h | ECMWF, 1,8 – 84,9, volledig gevuld |
+| `wind_kmi_2002_kmh` | `double` | km/h | KMI/Geo.be-station, veel NULLs |
+| `wind_ukkel_2024_kmh` | `double` | km/h | Ukkel, veel NULLs |
+| `wind_antwerpen_archive_kmh` | `double` | km/h | Antwerpen archief, veel NULLs |
 
-### `wind` (1.137.675 rijen, uurlijks, 2005-11 → 2026-03) — eigenlijk weerdata
+Bron: `extra_datasets/v_wind_alles_compleet.csv`. Origineel in m/s — `normalize_units` doet ×3.6 en hernoemt kolommen naar `*_kmh` (spec vereist km/h).
 
-| Kolom | Type | Unit | Opmerking |
+### `zon` — Zonneradiatie Antwerpen (ECMWF)
+**19.704 rijen · uurlijks · 2024-01-01 → 2026-03-31**
+
+| Kolom | Type | Unit | Bereik |
 |---|---|---|---|
-| `tijdstip` | **`text`** | — | Met `+00:00`, moet cast |
-| `wind_ecmwf_2026` | `double` | **m/s** | Windsnelheid (ECMWF model) |
-| `wind_kmi_2002` | `double` | **m/s** | KMI station, veel NULLs |
-| `wind_ukkel_2024` | `double` | **m/s** | Ukkel station, veel NULLs |
-| `wind_antwerpen_archive` | `double` | **m/s** | Antwerpen archief, veel NULLs |
+| `tijdstip` | `timestamptz` | — | UTC |
+| `ecmwf_radiation_wm2` | `double` | W/m² | 0 – 891 |
+| `ecmwf_direct_wm2` | `double` | W/m² | — |
+| `ecmwf_diffuse_wm2` | `double` | W/m² | — |
 
-⚠️ Deze tabel bevat **windsnelheidsmetingen**, geen productie — features voor modellering.
-
-### `zon` (2269 rijen, **dagelijks**, 2020-01-01 → 2026-03-18)
-
-| Kolom | Type | Unit | Opmerking |
-|---|---|---|---|
-| `id` | `bigint` | — | Row-id (overbodig na load) |
-| `datum` | **`text`** | — | Moet cast naar timestamp |
-| `open_meteo_radiation` | `double` | **W/m² of MJ/m²** | 2264 non-null rijen |
-| `kmi_radiation_avg` | `double` | idem | 1217/2269 non-null (46% missing) |
-| `kaggle_radiation_avg` | `double` | idem | 1847/2269 non-null (19% missing) |
-
-⚠️ Dagelijkse granulariteit — niet uurlijks zoals de andere tabellen.
-⚠️ Kolommen zijn weerdata-features, geen productie.
+Bron: **Open Meteo ECMWF archive-API** live ophalen via `pipelines/zon_hourly.py` voor coördinaten 51,2194°N / 4,4025°E (Antwerpen). Vervangt de oorspronkelijke dagelijkse CSV-laad omdat de spec uurlijkse granulariteit vereist. Kaggle (Uccle) en Geo.be: known gap.
 
 ---
 
-## 2. Geïdentificeerde problemen
+## 2. Transformaties (`pipelines/normalize.py`)
 
-1. **Tijdkolommen als `text`** in `productie`, `wind`, `zon` — joins/filters op tijd vergen een cast.
-2. **Unit-inconsistentie** tussen `consumptie` (MW) en `productie` (kWh). Factor 1000.
-3. **Tijdzone-mix**: `consumptie.tijd` naive timestamp (UTC), `productie`/`wind` text met `+00:00`, `zon` naive.
-4. **Temporele granulariteit**: `zon` is dagelijks, de rest uurlijks.
-5. **NULL-dichtheid** in `wind`- en `zon`-tabellen (deels door historische gaps).
-6. **Kolomnaamconventie** niet uniform: sommige hebben `_mw`/`_kwh` suffix, andere niet.
-7. **Overbodige `id`-kolom** in `zon` (rij-index uit CSV).
-8. **`wind`/`zon`** zijn weerdata, geen productie — naam misleidend maar functioneel OK als features.
+`normalize_units` is idempotent — detecteert al-uitgevoerde stappen via `information_schema` en slaat ze over bij een herlopen.
+
+| Tabel | Transformatie | Reden |
+|---|---|---|
+| `productie` | `tijd` text → `timestamptz` | Joinbaar op tijd |
+| `productie` | kolommen `_kwh` → `_mw`, waarden ÷1000 | Consistente eenheid met `consumptie` |
+| `wind` | `tijdstip` text → `timestamptz` | Joinbaar op tijd |
+| `wind` | kolommen m/s → km/h (×3.6) + rename naar `*_kmh` | Spec vereist km/h |
+| `zon` | (legacy) `datum` text → `timestamp`, drop `id` | Alleen voor oude CSV-schema; nieuwe uurlijkse schema heeft dit al |
 
 ---
 
-## 3. Staat NÁ normalisatie
+## 3. Wat nu consistent is
 
-Uitgevoerd door de `normalize_units` task in de Airflow DAG (`pipelines/normalize.py`).
-Transformaties zijn **idempotent**: de task detecteert reeds uitgevoerde stappen via
-`information_schema` en slaat ze over bij een herlopen.
-
-### `consumptie` (ongewijzigd — al correct)
-
-| Kolom | Type | Unit |
-|---|---|---|
-| `tijd` | `timestamp` (naive, UTC) | — |
-| `elia_total_load_mw` | `double` | **MW** |
-| `ev_zon_mw` | `double` | **MW** |
-| `ev_wind_mw` | `double` | **MW** |
-
-### `productie` — types + units genormaliseerd
-
-| Kolom | Type | Unit | Waardebereik |
-|---|---|---|---|
-| `tijd` | **`timestamptz`** | — | 2025-02-28 → 2026-03-18 |
-| `vlaanderen_zon_mw` | `double` | **MW** (was kWh, ÷1000) | — |
-| `vlaanderen_wind_mw` | `double` | **MW** | 0.28–1825.08 |
-| `elia_zon_mw` | `double` | **MW** | — |
-| `elia_wind_mw` | `double` | **MW** | 0.31–900.88 |
-
-### `wind` (weerdata, types genormaliseerd)
-
-| Kolom | Type | Unit |
-|---|---|---|
-| `tijdstip` | **`timestamptz`** | — |
-| `wind_ecmwf_2026` | `double` | **m/s** |
-| `wind_kmi_2002` | `double` | **m/s** |
-| `wind_ukkel_2024` | `double` | **m/s** |
-| `wind_antwerpen_archive` | `double` | **m/s** |
-
-### `zon` (weerdata, types genormaliseerd + id verwijderd)
-
-| Kolom | Type | Unit |
-|---|---|---|
-| `datum` | **`timestamp`** | — |
-| `open_meteo_radiation` | `double` | W/m² of MJ/m² |
-| `kmi_radiation_avg` | `double` | idem |
-| `kaggle_radiation_avg` | `double` | idem |
+- ✅ **Tijdkolommen**: `timestamp`/`timestamptz`, nooit meer `text` → direct joinable
+- ✅ **Productie-units**: alles in MW (zelfde schaal als `consumptie`)
+- ✅ **Wind-units**: km/h conform spec
+- ✅ **Zon-granulariteit**: uurlijks conform spec
+- ✅ **Zon-unit**: expliciet W/m² (geen meer MJ/m²-ambiguïteit)
+- ✅ **Kolomnaamconventie**: uniforme suffix per unit (`_mw`, `_kmh`, `_wm2`)
 
 ---
 
-## 4. Wat nu consistent is
+## 4. Wat bewust **niet** is aangepast
 
-- ✅ **Tijdkolommen**: allemaal `timestamp`/`timestamptz` (geen `text` meer) → direct joinable en filterbaar.
-- ✅ **Productie-units**: alles in MW, zelfde schaal als `consumptie` → directe numerieke vergelijking mogelijk.
-- ✅ **Kolomnaamconventie** voor productie-metrics: uniforme `_mw` suffix.
-- ✅ **`zon.id`** verwijderd.
+- **`wind` en `zon` blijven weer-features**, geen productie. Conversie naar MW heeft geen fysische betekenis en gebeurt niet.
+- **Missing values** in oudere `wind`-kolommen (KMI/Ukkel/Antwerpen) worden niet ingevuld — imputatie is een modelkeuze (hoort bij analyse, niet bij ETL).
+- **Kaggle-bronnen** (consumptie/wind/zon): geen credentials → bewust skip, gedocumenteerd in README als known gap. ECMWF dekt de kritieke data voor het ML-project.
+- **Tijdzones**: `consumptie.tijd` is naive UTC, `productie`/`wind`/`zon` zijn `timestamptz` UTC. Bij joins: cast of gebruik `AT TIME ZONE 'UTC'`.
 
-## 5. Wat bewust **niet** is aangepast
+---
 
-- **`wind`/`zon`** blijven in hun oorspronkelijke eenheden (m/s, W/m²). Dit zijn weerfeatures,
-  geen productie-output — conversie naar MW heeft geen fysische betekenis.
-- **`zon` blijft dagelijks** — resampling naar uurlijks vereist een domeinkeuze
-  (forward-fill, lineaire interpolatie, …) die niet geautomatiseerd zou moeten gebeuren.
-- **Missing values** in `wind` en `zon` worden niet ingevuld — imputatie is een model-
-  specifieke keuze die hoort bij analyse, niet bij de ETL.
-- **Tijdzones**: `consumptie.tijd` is naive UTC, `productie`/`wind` zijn `timestamptz` UTC,
-  `zon.datum` is naive dagbasis. Bij joins: cast naar dezelfde type of gebruik `AT TIME ZONE 'UTC'`.
-
-## 6. Pipeline flow
+## 5. Pipeline flow
 
 ```
- elia          energie_vlaanderen    kaggle (optioneel)
+ elia          energie_vlaanderen   kaggle (skip)
    \                  |                 /
     \                 v                /
      -------> consumptie_combine <----
-                      |
-                      |        extra_datasets
-                      v              |
-                      +------> normalize_units
+                      |                 extra_datasets (productie + wind CSVs)
+                      |                          |
+                      |                 zon_hourly_ecmwf (live Open Meteo API)
+                      |                          |
+                      +------> normalize_units <-+
                                      |
                                      v
                                  export_csv
 ```
 
+---
+
+## 6. Bronnen per tabel (spec → implementatie)
+
+| Tabel | Spec zegt | Geïmplementeerd |
+|---|---|---|
+| `consumptie` | Energie Vlaanderen, Elia, Kaggle | Elia ✓ · EV bewust weg (hoorde in productie) · Kaggle = known gap |
+| `productie` | Energie Vlaanderen, Elia | EV ✓ · Elia ✓ (beide kolommen aanwezig) |
+| `wind` | Open Meteo ECMWF, Geo.be, Kaggle (Uccle, Antwerpen) | ECMWF ✓ · KMI-stations dekken Geo.be gedeeltelijk · Kaggle = known gap |
+| `zon` | Open Meteo ECMWF, Geo.be, Kaggle (Uccle) | ECMWF ✓ (live-fetch Antwerpen) · Geo.be + Kaggle = known gap |
+
+overlapping -> 2025-02-28 → 2026-03-18 ≈ 9.000 uurlijkse rijen
+
+  1. "Antwerpen" in spec vs. data-scope: productie is Vlaanderen/BE-breed, niet strikt Antwerps. zon-radiatie is
+   wél specifiek voor Antwerpen (ECMWF fetch op 51,2194°N/4,4025°E). Model voorspelt dus BE-aggregaat met       
+  Antwerpse weer-features. Noem dit expliciet in je README-problem-description.
+  2. Kolom wind_ecmwf_2026_kmh: naam suggereert jaar 2026, maar data loopt 2005→2026. "2026" is eigenlijk een   
+  bron-tag in de originele CSV. Verwarrend maar niet fout.
+  3. NULLs in wind_kmi/ukkel/antwerpen_archive_kmh: geen probleem, gebruik alleen wind_ecmwf_2026_kmh als       
+  feature (100% gevuld).
+  4. Kaggle: documenteerbare gap, geen impact op trainbaarheid.
+
+  Wat nog niet klaar is (MLops-infra, geen data)
+
+  - Feature-tabel (join productie ⋈ zon ⋈ wind + lag/time-features) — nog niet gebouwd
+  - MLFlow server + tracking + registry — nog niks opgezet
+  - Prefect — nog steeds Airflow; moet vervangen worden
+  - FastAPI web service + Docker-image — bestaat niet
+  - Live ECMWF-forecast-fetcher (andere endpoint dan archive) voor batch-inference + API-input — nog niet       
+  geschreven
+  - Evidently + Grafana + auto-retrain trigger — niks
+  - Tests, pre-commit, pinned deps — niks
+
+  Conclusie: data-laag is go. Volgende stap is het ML-plan uitschrijven en Fase 1 starten (feature-tabel +      
+  MLFlow).

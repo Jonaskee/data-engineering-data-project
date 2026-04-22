@@ -3,12 +3,15 @@ from pathlib import Path
 from sqlalchemy import inspect
 from db import write_to_db
 
-EXTRA_DIR = Path("extra_datasets")
+# Resolve ten opzichte van project-root zodat het werkt vanuit elke CWD
+# (Airflow draait met CWD=/opt/airflow, lokaal vanuit project-root)
+EXTRA_DIR = Path(__file__).resolve().parent.parent / "extra_datasets"
 
 MAPPING = {
     "productie_combined.csv":    "productie",
     "v_wind_alles_compleet.csv": "wind",
-    "sun_combined.csv":          "zon",
+    # "zon" wordt uurlijks opgehaald via ECMWF in pipelines/zon_hourly.py
+    # (spec vereist W/m² per uur, sun_combined.csv is dagelijks)
 }
 
 

@@ -29,7 +29,7 @@ def _get_engine():
 
 def task_elia(**_):
     from pipelines.elia import run_elia_pipeline
-    run_elia_pipeline(_get_engine())
+    run_elia_pipeline(_get_engine(), force_reload=True)
 
 
 def task_vlaanderen(**_):
@@ -51,6 +51,11 @@ def task_consumptie(**_):
 def task_extra_datasets(**_):
     from pipelines.extra_datasets import run_extra_datasets_pipeline
     run_extra_datasets_pipeline(_get_engine())
+
+
+def task_zon_hourly(**_):
+    from pipelines.zon_hourly import run_zon_hourly_pipeline
+    run_zon_hourly_pipeline(_get_engine())
 
 
 def task_normalize(**_):
@@ -84,8 +89,9 @@ with DAG(
     t_kaggle = PythonOperator(task_id="kaggle", python_callable=task_kaggle)
     t_consumptie = PythonOperator(task_id="consumptie_combine", python_callable=task_consumptie)
     t_extra = PythonOperator(task_id="extra_datasets", python_callable=task_extra_datasets)
+    t_zon = PythonOperator(task_id="zon_hourly_ecmwf", python_callable=task_zon_hourly)
     t_normalize = PythonOperator(task_id="normalize_units", python_callable=task_normalize)
     t_export = PythonOperator(task_id="export_csv", python_callable=task_export_csv)
 
     [t_elia, t_vlaanderen, t_kaggle] >> t_consumptie
-    [t_consumptie, t_extra] >> t_normalize >> t_export
+    [t_consumptie, t_extra, t_zon] >> t_normalize >> t_export

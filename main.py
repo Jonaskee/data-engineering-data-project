@@ -3,6 +3,7 @@ from pipelines.elia import run_elia_pipeline
 from pipelines.energie_vlaanderen import run_vlaanderen_pipeline
 from pipelines.combine_data import run_consumptie_combine
 from pipelines.extra_datasets import run_extra_datasets_pipeline
+from pipelines.zon_hourly import run_zon_hourly_pipeline
 from pipelines.normalize import run_normalize_pipeline
 from pipelines.export_csv import export_all_tables_to_csv
 
@@ -16,16 +17,17 @@ if __name__ == "__main__":
         exit(1)
 
     # 1. Haal ruwe bronnen op (consumptie-groep)
-    run_elia_pipeline(engine)
+    run_elia_pipeline(engine, force_reload=True)
     run_vlaanderen_pipeline(engine)
 
     # 2. Bouw de consumptie-tabel uit de opgehaalde bronnen
     run_consumptie_combine(engine)
 
-    # 3. Laad de 3 CSVs van de andere groepen in productie/wind/zon
+    # 3. Laad CSVs (productie, wind) + haal uurlijkse zon-radiatie op via ECMWF
     run_extra_datasets_pipeline(engine)
+    run_zon_hourly_pipeline(engine)
 
-    # 4. Normaliseer types en units (kWh -> MW, text -> timestamp)
+    # 4. Normaliseer types en units (kWh -> MW, text -> timestamp, m/s -> km/h)
     run_normalize_pipeline(engine)
 
     # 5. Exporteer alle tabellen naar CSV (handig voor controle)

@@ -25,99 +25,26 @@ def run_consumptie_combine(engine):
 
     load_col = _detect_elia_load_column(engine)
     has_elia = load_col is not None
-    has_ev_solar = "vlaanderen_energie_solar" in tables
-    has_ev_wind = "vlaanderen_energie_wind" in tables
-    has_kaggle_district = "kaggle_district_raw" in tables
-    has_kaggle_private = "kaggle_private_raw" in tables
 
-    if not (has_elia or has_ev_solar or has_ev_wind or has_kaggle_district or has_kaggle_private):
-        print("  Geen bronnen gevonden voor consumptie-tabel. Skipping.")
+    if not has_elia:
+        print("  Geen Elia-bron gevonden voor consumptie-tabel. Skipping.")
         return
-
-    ctes = []
-    selects = ["h.tijd"]
-    joins = []
-
-    if has_elia:
-        ctes.append(f"""elia AS (
-            SELECT DATE_TRUNC('hour', datetime::timestamp) AS tijd,
-                   AVG({load_col}) AS elia_total_load_mw
-            FROM elia_total_load
-            WHERE {load_col} IS NOT NULL
-            GROUP BY 1
-        )""")
-        selects.append("e.elia_total_load_mw")
-        joins.append("LEFT JOIN elia e USING(tijd)")
-
-    if has_ev_solar:
-        ctes.append("""ev_solar AS (
-            SELECT DATE_TRUNC('hour', datumtijd::timestamp) AS tijd,
-                   SUM(vermogen_mw) AS ev_zon_mw
-            FROM vlaanderen_energie_solar
-            GROUP BY 1
-        )""")
-        selects.append("s.ev_zon_mw")
-        joins.append("LEFT JOIN ev_solar s USING(tijd)")
-
-    if has_ev_wind:
-        ctes.append("""ev_wind AS (
-            SELECT DATE_TRUNC('hour', datumtijd::timestamp) AS tijd,
-                   SUM(vermogen_mw) AS ev_wind_mw
-            FROM vlaanderen_energie_wind
-            GROUP BY 1
-        )""")
-        selects.append("w.ev_wind_mw")
-        joins.append("LEFT JOIN ev_wind w USING(tijd)")
-
-    if has_kaggle_district:
-        ctes.append("""kaggle_openbaar AS (
-            SELECT DATE_TRUNC('hour', time) AS tijd,
-                   SUM(total_calc) / 1000.0 AS kaggle_openbaar_mw
-            FROM kaggle_district_raw
-            GROUP BY 1
-        )""")
-        selects.append("kd.kaggle_openbaar_mw")
-        joins.append("LEFT JOIN kaggle_openbaar kd USING(tijd)")
-
-    if has_kaggle_private:
-        ctes.append("""kaggle_prive AS (
-            SELECT DATE_TRUNC('hour', time) AS tijd,
-                   SUM(power_kw) / 1000.0 AS kaggle_prive_mw
-            FROM kaggle_private_raw
-            GROUP BY 1
-        )""")
-        selects.append("kp.kaggle_prive_mw")
-        joins.append("LEFT JOIN kaggle_prive kp USING(tijd)")
-
-    union_parts = []
-    if has_elia:
-        union_parts.append("SELECT tijd FROM elia")
-    if has_ev_solar:
-        union_parts.append("SELECT tijd FROM ev_solar")
-    if has_ev_wind:
-        union_parts.append("SELECT tijd FROM ev_wind")
-    if has_kaggle_district:
-        union_parts.append("SELECT tijd FROM kaggle_openbaar")
-    if has_kaggle_private:
-        union_parts.append("SELECT tijd FROM kaggle_prive")
-    ctes.append("all_hours AS (\n    " + "\n    UNION ".join(union_parts) + "\n)")
 
     sql = f"""
     DROP TABLE IF EXISTS consumptie;
     CREATE TABLE consumptie AS
-    WITH {", ".join(ctes)}
-    SELECT {", ".join(selects)}
-    FROM all_hours h
-    {chr(10).join(joins)}
-    ORDER BY h.tijd ASC;
+    SELECT DATE_TRUNC('hour', datetime::timestamp) AS tijd,
+           AVG({load_col}) AS elia_total_load_mw
+    FROM elia_total_load
+    WHERE {load_col} IS NOT NULL
+    GROUP BY 1
+    ORDER BY 1 ASC;
     """
 
     try:
         with engine.begin() as conn:
             conn.execute(text(sql))
-        print(f"  SUCCES: 'consumptie' tabel aangemaakt (bronnen: "
-              f"{'elia ' if has_elia else ''}"
-              f"{'ev_solar ' if has_ev_solar else ''}"
-              f"{'ev_wind' if has_ev_wind else ''}).")
+            row_count = conn.execute(text("SELECT COUNT(*) FROM consumptie")).scalar()
+        print(f"  SUCCES: 'consumptie' tabel aangemaakt ({row_count} rijen, bron: elia_total_load).")
     except Exception as e:
         print(f"  FOUT bij het bouwen van consumptie-tabel: {e}")

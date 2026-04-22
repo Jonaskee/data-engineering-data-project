@@ -53,9 +53,18 @@ def normalize_wind(engine, conn):
               "ALTER TABLE wind ALTER COLUMN tijdstip TYPE timestamptz USING tijdstip::timestamptz",
               "wind.tijdstip -> timestamptz")
 
+    # m/s -> km/h conversie (×3.6) + hernoem naar *_kmh (spec: km/h)
+    wind_cols = [c for c in cols if c != "tijdstip" and not c.endswith("_kmh")]
+    for old in wind_cols:
+        new = f"{old}_kmh"
+        _exec(conn, f"UPDATE wind SET {old} = {old} * 3.6", f"wind.{old} m/s -> km/h (×3.6)")
+        _exec(conn, f'ALTER TABLE wind RENAME COLUMN {old} TO {new}', f"wind.{old} -> {new}")
+
 
 def normalize_zon(engine, conn):
     cols = _col_types(engine, "zon")
+    # Nieuwe uurlijkse schema (via zon_hourly) heeft tijdstip al als timestamptz.
+    # Dit blok vangt legacy CSV-schema (datum als text, overbodige id) op.
     if "text" in cols.get("datum", ""):
         _exec(conn,
               "ALTER TABLE zon ALTER COLUMN datum TYPE timestamp USING datum::timestamp",
