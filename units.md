@@ -144,3 +144,5 @@ overlapping -> 2025-02-28 → 2026-03-18 ≈ 9.000 uurlijkse rijen
 
   Conclusie: data-laag is go. Volgende stap is het ML-plan uitschrijven en Fase 1 starten (feature-tabel +      
   MLFlow).
+
+  database checken: docker exec energie_db psql -U data_user -d energie_vlaanderen_db -c "SELECT 'consumptie' as t, COUNT(*) FROM consumptie UNION ALL SELECT 'productie', COUNT(*) FROM productie UNION ALL SELECT 'wind', COUNT(*) FROM wind UNION ALL SELECT 'zon', COUNT(*) FROM zon;"

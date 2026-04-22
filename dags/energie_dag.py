@@ -1,12 +1,3 @@
-"""Airflow DAG die de complete energie-data pipeline orchestreert.
-
-Tasks (volgorde):
-    elia  ─┐
-           ├─> consumptie ─┐
-    ev   ──┘                ├─> export_csv
-    extra_datasets ────────┘
-"""
-
 from __future__ import annotations
 
 import sys
