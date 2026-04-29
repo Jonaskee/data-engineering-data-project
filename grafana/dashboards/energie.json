@@ -179,6 +179,21 @@
           "refId": "E"
         }
       ]
+    },
+    {
+      "id": 6,
+      "title": "Database Tabel Metadata",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT table_name AS \"Tabel\", row_count AS \"Aantal Rijen\", column_count AS \"Aantal Kolommen\", columns AS \"Kolommen\" FROM table_metadata ORDER BY table_name",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }

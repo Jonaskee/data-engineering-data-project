@@ -59,6 +59,11 @@ def task_export_csv(**_):
     export_all_tables_to_csv(_get_engine())
 
 
+def task_metadata(**_):
+    from pipelines.metadata import run_metadata_pipeline
+    run_metadata_pipeline(_get_engine())
+
+
 default_args = {
     "owner": "consumptie-groep",
     "retries": 1,
@@ -82,7 +87,8 @@ with DAG(
     t_extra = PythonOperator(task_id="extra_datasets", python_callable=task_extra_datasets)
     t_zon = PythonOperator(task_id="zon_hourly_ecmwf", python_callable=task_zon_hourly)
     t_normalize = PythonOperator(task_id="normalize_units", python_callable=task_normalize)
+    t_metadata = PythonOperator(task_id="metadata", python_callable=task_metadata)
     t_export = PythonOperator(task_id="export_csv", python_callable=task_export_csv)
 
     [t_elia, t_vlaanderen, t_kaggle] >> t_consumptie
-    [t_consumptie, t_extra, t_zon] >> t_normalize >> t_export
+    [t_consumptie, t_extra, t_zon] >> t_normalize >> t_metadata >> t_export

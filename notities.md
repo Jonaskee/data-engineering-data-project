@@ -35,3 +35,8 @@ Ter aanvulling zijn dit de overige inloggegevens voor de bijbehorende services (
 
 pgAdmin (http://localhost:5050): admin@admin.com / admin
 Postgres Database: data_user / super_geheim_wachtwoord
+
+
+energie_pipeline handmatig aan te zetten ("triggeren").
+
+Als je wilt dat hij het automatisch doet zodra je Airflow aanzet en dit blijft herhalen (bijvoorbeeld elke dag of elk uur), kan ik de planning (schedule) voor je aanpassen naar bijvoorbeeld schedule="@daily" of schedule="@hourly".
