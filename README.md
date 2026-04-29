@@ -114,7 +114,24 @@ De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde t
 
    > Zorg dat je eerst de pipeline hebt uitgevoerd (stap 3) voordat je data in Grafana verwacht.
 
-## Opslag
+## Data Opslag & Externe Toegang
+
+De verwerkte data wordt persistent opgeslagen in de PostgreSQL-container (`energie_db`) via een Docker Named Volume (`pgdata`). Om deze data voor MLops/ander project te gebruiken, kan je het doen op volgende manieren:
+
+### 1. PostgreSQL Connectie via Poort 5432
+De databasepoort `5432` is via `docker-compose.yml` expliciet gemapped naar de host machine. Dit maakt rechtstreekse en up-to-date SQL-queries mogelijk vanuit externe applicaties (zoals een extern Python/pandas script).
+
+**Connectiestring:**
+```text
+postgresql+psycopg2://<PGUSER>:<PGPASSWORD>@localhost:5432/<PGDATABASE>
+```
+*(Voorbeeld met standaardgegevens: `postgresql+psycopg2://data_user:super_geheim_wachtwoord@localhost:5432/energie_db`)*
+
+### 2. CSV Bestanden (Statische Export)
+De pijplijn bevat een automatische export-taak (`export_csv.py`) die de volledige inhoud van alle tabellen exporteert naar losse `.csv`-bestanden. Deze bestanden bieden een statische momentopname en zijn ideaal voor analyses zonder dat de database online staat.
+
+- **Relatief pad in project:** `./data/exports/`
+- **Voorbeeld pad naar consumptie dataset:** `C:\Jaar2_semester_2\data_eng\data_project\data\exports\consumptie.csv`
 
 ## Claude MCP Integratie
 
