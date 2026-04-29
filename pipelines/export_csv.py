@@ -15,22 +15,23 @@ def export_all_tables_to_csv(engine):
         print("  Geen tabellen gevonden om te exporteren.")
         return
         
-    # Maak een map voor de exports als het handig is of gebruik de gewone data dir
     export_dir = DATA_DIR / "exports"
     export_dir.mkdir(exist_ok=True, parents=True)
     
     for table_name in tables:
+        # Sla Airflow metadata tabellen over om het overzichtelijk te houden voor de gebruiker
+        if table_name.startswith(('ab_', 'dag_', 'task_', 'log', 'job', 'slot', 'variable', 'dataset', 'trigger', 'xcom', 'session', 'alembic')):
+            continue
+            
         print(f"  Exporteren van tabel '{table_name}'...")
         try:
-            # Query om alles op te halen
             query = f"SELECT * FROM {table_name}"
             df = pd.read_sql(query, con=engine)
             
-            # Opslaan als CSV
             csv_path = export_dir / f"{table_name}.csv"
             df.to_csv(csv_path, index=False)
-            print(f"  ✓ Opgeslagen: {csv_path} ({len(df)} rijen)")
+            print(f"  [DONE] Opgeslagen: {csv_path} ({len(df)} rijen)")
         except Exception as e:
-            print(f"  ✗ Fout bij exporteren van '{table_name}': {e}")
+            print(f"  [ERROR] Fout bij exporteren van '{table_name}': {e}")
             
     print("Export pipeline voltooid!\n")

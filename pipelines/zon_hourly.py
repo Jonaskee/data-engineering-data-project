@@ -54,7 +54,7 @@ def run_zon_hourly_pipeline(engine, force_reload=False):
     start = os.getenv("FILTER_START", "2024-01-01")
     end = os.getenv("FILTER_END", "2026-03-31")
 
-    print(f"  Ophalen {start} → {end} (lat={ANTWERPEN_LAT}, lon={ANTWERPEN_LON})")
+    print(f"  Ophalen {start} - {end} (lat={ANTWERPEN_LAT}, lon={ANTWERPEN_LON})")
     try:
         df = _fetch_hourly_radiation(start, end)
     except Exception as e:
