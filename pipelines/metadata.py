@@ -5,8 +5,33 @@ from db import write_to_db
 def run_metadata_pipeline(engine):
     print("Start metadata pipeline...")
     with engine.connect() as conn:
-        # Haal alle tabellen in de public schema op
-        tables_query = text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name != 'table_metadata';")
+        # Haal alle tabellen in de public schema op (sluit Airflow systeemtabellen uit)
+        tables_query = text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_type = 'BASE TABLE' 
+            AND table_name != 'table_metadata'
+            AND table_name NOT LIKE 'ab_%'
+            AND table_name NOT LIKE 'alembic_%'
+            AND table_name NOT LIKE 'celery_%'
+            AND table_name NOT LIKE 'dag%'
+            AND table_name NOT LIKE 'task_%'
+            AND table_name NOT LIKE 'job%'
+            AND table_name NOT LIKE 'log%'
+            AND table_name NOT LIKE 'xcom%'
+            AND table_name NOT LIKE 'connection%'
+            AND table_name NOT LIKE 'sla_%'
+            AND table_name NOT LIKE 'import_error%'
+            AND table_name NOT LIKE 'dataset%'
+            AND table_name NOT LIKE 'slot_pool%'
+            AND table_name NOT LIKE 'variable%'
+            AND table_name NOT LIKE 'rendered_%'
+            AND table_name NOT LIKE 'trigger%'
+            AND table_name NOT LIKE 'serialized_%'
+            AND table_name NOT LIKE 'session%'
+            AND table_name NOT LIKE 'sensor_%';
+        """)
         tables = conn.execute(tables_query).fetchall()
         
         metadata_list = []

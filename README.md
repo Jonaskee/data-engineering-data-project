@@ -1,6 +1,6 @@
 # Energie Data Pipeline
 
-Deze repository bevat een geautomatiseerde data pipeline, gedreven door Apache Airflow, die energiedata ophaalt, verwerkt en opslaat in een PostgreSQL database.
+Deze repository bevat een data pipeline, door Apache Airflow, die energiedata ophaalt, verwerkt en opslaat in een PostgreSQL database.
 
 ## Architectuur en Setup
 
@@ -15,19 +15,19 @@ Deze repository bevat een geautomatiseerde data pipeline, gedreven door Apache A
 ## Datasets
 !!! folder extra_datasets bevat nog niets, download deze via digitap data engineering. En zet productie_combined, sun_combined en v_wind_alles_compleet csv bestanden in de folder extra_datasets. !!! verwijder consumptie.csv. !!!
 
-Na een succesvolle run zijn 4 tabellen aanwezig in de Postgres database. Bron-mapping volgens opdracht-spec:
+Na een succesvolle run zijn 4 tabellen aanwezig in de Postgres database:
 
 | Tabel | Bronnen (spec) | Feature | Implementatie |
 |-------|---------------|---------|---------------|
-| `consumptie` | Energie Vlaanderen, Elia, Kaggle | Grid load (MW) per uur | Elia `ods001` total_load. EV-productie-kolommen zijn bewust weggelaten (horen in `productie`). **Kaggle: known gap (geen credentials).** |
+| `consumptie` | Energie Vlaanderen, Elia, Kaggle | Grid load (MW) per uur | Elia `ods001` total_load. EV-productie-kolommen zijn bewust weggelaten (horen in `productie`). |
 | `productie` | Energie Vlaanderen, Elia | Solar & wind production (MW) per uur | `productie_combined.csv` → tabel `productie`, kolommen `vlaanderen_zon_mw`, `vlaanderen_wind_mw`, `elia_zon_mw`, `elia_wind_mw` |
-| `wind` | Open Meteo ECMWF, Geo.be, Kaggle (Uccle, Antwerpen) | Wind speed (km/h) per uur | `v_wind_alles_compleet.csv` → genormaliseerd van m/s naar km/h (×3.6). Kolommen eindigen op `_kmh`. **Kaggle: known gap.** |
-| `zon` | Open Meteo ECMWF, Geo.be, Kaggle (Uccle) | Solar radiation (W/m²) per uur | Uurlijks opgehaald via Open Meteo ECMWF archive-API voor Antwerpen (lat 51.2194, lon 4.4025). Kolommen: `ecmwf_radiation_wm2`, `ecmwf_direct_wm2`, `ecmwf_diffuse_wm2`. **Kaggle/Geo.be: known gap.** |
+| `wind` | Open Meteo ECMWF, Geo.be, Kaggle (Uccle, Antwerpen) | Wind speed (km/h) per uur | `v_wind_alles_compleet.csv` → genormaliseerd van m/s naar km/h (×3.6). Kolommen eindigen op `_kmh`.|
+| `zon` | Open Meteo ECMWF, Geo.be, Kaggle (Uccle) | Solar radiation (W/m²) per uur | Uurlijks opgehaald via Open Meteo ECMWF archive-API voor Antwerpen (lat 51.2194, lon 4.4025). Kolommen: `ecmwf_radiation_wm2`, `ecmwf_direct_wm2`, `ecmwf_diffuse_wm2`. |
 
-Het date-window (`FILTER_START` / `FILTER_END` in `.env`) stuurt Elia én de ECMWF-fetch. Default: 2024-01-01 → 2026-03-31.
+**pas het date window aan in de .env file als je meer data wilt downloaden**, het date-window (`FILTER_START` / `FILTER_END` in `.env`) stuurt Elia én de ECMWF-fetch. Default: 2024-01-01 → 2026-03-31.
 
 ### Dataset Structuur (Kolommen, Rijen & Waarden)
-De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde tijdsvenster in je `.env` bestand en de historische databeschikbaarheid. Gebaseerd op de standaard tijdsperiode (ca. 2 jaar) en de huidige data, ziet de structuur er als volgt uit:
+De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde tijdsvenster in je `.env`
 
 #### 1. `consumptie` (~19.704 rijen)
 - **Granulariteit**: Uurlijks
@@ -114,6 +114,8 @@ De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde t
 
    > Zorg dat je eerst de pipeline hebt uitgevoerd (stap 3) voordat je data in Grafana verwacht.
 
+## Opslag
+
 ## Claude MCP Integratie
 
 Om de educatieve MCP (Model Context Protocol) server toe te voegen aan je lokale Claude omgeving, voer je het volgende commando uit. Dit zorgt ervoor dat Claude de lokale server herkent en de tools uit het script kan gebruiken:
@@ -125,6 +127,8 @@ claude mcp add mijn-educatieve-mcp python mcp_server.py
 ### airflow pipeline
 ![airflow pipeline](dag.png)
 ### grafana visualisatie
-![grafana visualisatie](image.png)
+![grafana visualisatie](grafana.png)
+### metadata visualisatie in grafana
+![grafana visualisatie](metadata.png)
 ### mcp server test met claude code
 ![mcp server](mcp.png)
