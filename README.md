@@ -102,7 +102,7 @@ De daadwerkelijke datasetgrootte (aantal rijen) hangt af van het geselecteerde t
 
    Het dashboard **"Energie Dashboard"** wordt automatisch geladen via provisioning (geen handmatige configuratie nodig). De PostgreSQL datasource is al geconfigureerd.
 
-   Het dashboard bevat 5 panelen:
+   Het dashboard bevat 5 panelen (na opdracht 11 zijn dit er nu meer):
 
    | Paneel | Tabel | Eenheid |
    |--------|-------|---------|
@@ -147,6 +147,7 @@ Voor deze week heb ik in Grafana een uitgebreide analyse toegevoegd om het beste
 
 - **Koop-score (%)**: Een berekende score waarbij uren met een hoog aanbod (productie) en een relatief lage vraag (consumptie) de hoogste percentages behalen.
 - **Beste bestelmomenten**: Uit de analyse blijkt dat de uren rond de middag (door piek in zonne-productie) en in het weekend (door lager verbruik) de meest gunstige momenten zijn om energie in te kopen.
+- **Dagelijks Aankoopadvies Script**: Er is een extra script (`advies_kopen_dagelijks.py`) toegevoegd dat per dag een aankoopadvies genereert (`1 = Kopen`, `0 = Wachten`). Hierbij is een grens van **30%** (de daggemiddelde productie moet minimaal 30% van de daggemiddelde consumptie dekken) om alleen de beste dagen eruit te pikken. De resultaten hiervan worden geëxporteerd naar CSV en opgeslagen in een tabel (`dagelijks_koop_advies`). Ook in het Grafana dashboard is deze zichtbaar.
 
 ## Voorbeeld uivoer
 ### airflow pipeline
@@ -161,5 +162,7 @@ Voor deze week heb ik in Grafana een uitgebreide analyse toegevoegd om het beste
 ![beste moment per uur](koop-score-24u.png)
 ### beste koopdagen (laagste netto-vraag)
 ![beste inkoop dagen](beste-dagen-kopen.png)
+### dagelijks aankoopadvies script (0/1 indicator)
+![dagelijks aankoopadvies](koop_dagen_0_1.png)
 ### mcp server test met claude code
 ![mcp server](mcp.png)

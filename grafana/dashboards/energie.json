@@ -198,7 +198,7 @@
     {
       "id": 8,
       "title": "beste moment om energie te kopen (hoge productie + lage consumptie = beste moment) koopzone (groen)",
-      "description": "Netto-vraag = Consumptie − Totale Productie (zon + wind). Lage waarden = hoge productie + lage consumptie = beste moment om energie te kopen. Drempel 7.500 MW = koopzone (groen).",
+      "description": "Netto-vraag = Consumptie − Totale Productie (zon + wind). Lage waarden = hoge productie + lage consumptie = beste moment om energie te kopen. Drempel 6.000 MW = koopzone (groen).",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 40, "w": 24, "h": 10 },
       "datasource": { "type": "postgres", "uid": "energie_postgres" },
@@ -215,8 +215,8 @@
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "yellow", "value": 8000000000 },
-              { "color": "red", "value": 9000000000 }
+              { "color": "yellow", "value": 6000000000 },
+              { "color": "red", "value": 7000000000 }
             ]
           }
         },
@@ -263,7 +263,7 @@
           },
           {
             "matcher": { "id": "byName", "options": "Gem. Netto-vraag (MW)" },
-            "properties": [{ "id": "unit", "value": "watt" }, { "id": "decimals", "value": 0 }, { "id": "custom.displayMode", "value": "color-background" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 8000000000 }, { "color": "red", "value": 9000000000 }] } }]
+            "properties": [{ "id": "unit", "value": "watt" }, { "id": "decimals", "value": 0 }, { "id": "custom.displayMode", "value": "color-background" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 6000000000 }, { "color": "red", "value": 7000000000 }] } }]
           },
           {
             "matcher": { "id": "byName", "options": "Koop-score (%)" },
@@ -272,7 +272,17 @@
               { "id": "custom.displayMode", "value": "lcd-gauge" },
               { "id": "color", "value": { "mode": "continuous-GrYlRd" } },
               { "id": "mappings", "value": [] },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.2 }, { "color": "green", "value": 0.4 }] } }
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.2 }, { "color": "green", "value": 0.3 }] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Kopen? (0/1)" },
+            "properties": [
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } },
+              { "id": "mappings", "value": [
+                { "type": "value", "options": { "0": { "text": "0 (Nee)" }, "1": { "text": "1 (Ja)" } } }
+              ] }
             ]
           }
         ]
@@ -281,7 +291,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "energie_postgres" },
-          "rawSql": "SELECT EXTRACT(HOUR FROM tijd)::int AS \"Uur (UTC)\", ROUND(AVG(consumptie_mw) * 1000000) AS \"Gem. Consumptie (MW)\", ROUND(AVG(totale_productie_mw) * 1000000) AS \"Gem. Productie (MW)\", ROUND(AVG(netto_vraag_mw) * 1000000) AS \"Gem. Netto-vraag (MW)\", ROUND(CORR(consumptie_mw, totale_productie_mw)::numeric, 3) AS \"Correlatie r\", AVG(totale_productie_mw / NULLIF(consumptie_mw, 0)) AS \"Koop-score (%)\" FROM v_productie_consumptie GROUP BY 1 ORDER BY \"Koop-score (%)\" DESC",
+          "rawSql": "SELECT EXTRACT(HOUR FROM tijd)::int AS \"Uur (UTC)\", ROUND(AVG(consumptie_mw) * 1000000) AS \"Gem. Consumptie (MW)\", ROUND(AVG(totale_productie_mw) * 1000000) AS \"Gem. Productie (MW)\", ROUND(AVG(netto_vraag_mw) * 1000000) AS \"Gem. Netto-vraag (MW)\", ROUND(CORR(consumptie_mw, totale_productie_mw)::numeric, 3) AS \"Correlatie r\", AVG(totale_productie_mw / NULLIF(consumptie_mw, 0)) AS \"Koop-score (%)\", CASE WHEN AVG(totale_productie_mw / NULLIF(consumptie_mw, 0)) >= 0.3 THEN 1 ELSE 0 END AS \"Kopen? (0/1)\" FROM v_productie_consumptie GROUP BY 1 ORDER BY \"Koop-score (%)\" DESC",
           "format": "table",
           "refId": "A",
           "rawQuery": true
