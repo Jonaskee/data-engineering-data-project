@@ -2,7 +2,7 @@
   "title": "Energie Dashboard",
   "uid": "energie-overzicht",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 3,
   "refresh": "5m",
   "time": { "from": "now-90d", "to": "now" },
   "timezone": "browser",
@@ -174,7 +174,7 @@
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "energie_postgres" },
-          "rawSql": "SELECT c.tijd AS time, c.elia_total_load_mw * 1000000 AS \"Verbruik (W)\", (p.elia_zon_mw + p.elia_wind_mw + COALESCE(p.vlaanderen_zon_mw, 0) + COALESCE(p.vlaanderen_wind_mw, 0)) * 1000000 AS \"Totale Productie (W)\" FROM consumptie c JOIN productie p ON DATE_TRUNC('hour', c.tijd) = DATE_TRUNC('hour', p.tijd) WHERE $__timeFilter(c.tijd) ORDER BY 1",
+          "rawSql": "SELECT c.tijd AS time, c.elia_total_load_mw * 1000000 AS \"Verbruik (W)\", (p.elia_zon_mw + p.elia_wind_mw + COALESCE(p.vlaanderen_zon_mw, 0) + COALESCE(p.vlaanderen_wind_mw, 0)) * 1000000 AS \"Totale Productie (W)\" FROM consumptie c JOIN productie p ON DATE_TRUNC('hour', c.tijd AT TIME ZONE 'UTC') = DATE_TRUNC('hour', p.tijd AT TIME ZONE 'UTC') WHERE $__timeFilter(c.tijd) ORDER BY 1",
           "format": "time_series",
           "refId": "E"
         }
@@ -192,6 +192,146 @@
           "rawSql": "SELECT table_name AS \"Tabel\", row_count AS \"Aantal Rijen\", column_count AS \"Aantal Kolommen\", columns AS \"Kolommen\" FROM table_metadata ORDER BY table_name",
           "format": "table",
           "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "beste moment om energie te kopen (hoge productie + lage consumptie = beste moment) koopzone (groen)",
+      "description": "Netto-vraag = Consumptie − Totale Productie (zon + wind). Lage waarden = hoge productie + lage consumptie = beste moment om energie te kopen. Drempel 7.500 MW = koopzone (groen).",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 40, "w": 24, "h": 10 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "opacity"
+          },
+          "color": { "mode": "fixed", "fixedColor": "#73BF69" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 8000000000 },
+              { "color": "red", "value": 9000000000 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Netto-vraag (W)" },
+            "properties": [
+              { "id": "custom.thresholdsStyle", "value": { "mode": "area" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT tijd AS time, netto_vraag_mw * 1000000 AS \"Netto-vraag (W)\" FROM v_productie_consumptie WHERE $__timeFilter(tijd) ORDER BY 1",
+          "format": "time_series",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Koop-score tabel Top 24 uur (laagste netto-vraag)",
+      "description": "Historisch beste inkoopuren. Koop-score = 100 - (netto_vraag / max_netto_vraag * 100). Hogere score = beter koopmoment.",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 50, "w": 24, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Gem. Productie (MW)" },
+            "properties": [{ "id": "unit", "value": "watt" }, { "id": "decimals", "value": 0 }, { "id": "custom.displayMode", "value": "color-background" }, { "id": "color", "value": { "mode": "continuous-GrYlRd" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Gem. Consumptie (MW)" },
+            "properties": [{ "id": "unit", "value": "watt" }, { "id": "decimals", "value": 0 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Gem. Netto-vraag (MW)" },
+            "properties": [{ "id": "unit", "value": "watt" }, { "id": "decimals", "value": 0 }, { "id": "custom.displayMode", "value": "color-background" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 8000000000 }, { "color": "red", "value": 9000000000 }] } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Koop-score (%)" },
+            "properties": [
+              { "id": "unit", "value": "percentunit" },
+              { "id": "custom.displayMode", "value": "lcd-gauge" },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } },
+              { "id": "mappings", "value": [] },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.2 }, { "color": "green", "value": 0.4 }] } }
+            ]
+          }
+        ]
+      },
+      "options": { "footer": { "show": false }, "sortBy": [{ "displayName": "Koop-score (%)", "desc": true }] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT EXTRACT(HOUR FROM tijd)::int AS \"Uur (UTC)\", ROUND(AVG(consumptie_mw) * 1000000) AS \"Gem. Consumptie (MW)\", ROUND(AVG(totale_productie_mw) * 1000000) AS \"Gem. Productie (MW)\", ROUND(AVG(netto_vraag_mw) * 1000000) AS \"Gem. Netto-vraag (MW)\", ROUND(CORR(consumptie_mw, totale_productie_mw)::numeric, 3) AS \"Correlatie r\", AVG(totale_productie_mw / NULLIF(consumptie_mw, 0)) AS \"Koop-score (%)\" FROM v_productie_consumptie GROUP BY 1 ORDER BY \"Koop-score (%)\" DESC",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Beste bestelmoment gedurende de dag: Hoe hoger hoe beter",
+      "description": "Wanneer je in de dag je energie moet kopen hoe hoger hoe beter",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 58, "w": 24, "h": 10 },
+      "datasource": { "type": "postgres", "uid": "energie_postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 3,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Koop-score" },
+            "properties": [
+              { "id": "unit", "value": "percentunit" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#73BF69" } },
+              { "id": "custom.fillOpacity", "value": 20 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Correlatie" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#5794F2" } },
+              { "id": "custom.axisPlacement", "value": "right" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "energie_postgres" },
+          "rawSql": "SELECT make_timestamp(2024, 1, 1, uur, 0, 0) as time, r AS \"Correlatie\", ratio AS \"Koop-score\" FROM (SELECT EXTRACT(HOUR FROM tijd)::int as uur, CORR(consumptie_mw, totale_productie_mw) as r, AVG(totale_productie_mw / NULLIF(consumptie_mw, 0)) as ratio FROM v_productie_consumptie GROUP BY 1) s ORDER BY uur",
+          "format": "time_series",
+          "refId": "A",
+          "rawQuery": true
         }
       ]
     }

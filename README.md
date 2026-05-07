@@ -140,6 +140,14 @@ Om de educatieve MCP (Model Context Protocol) server toe te voegen aan je lokale
 ```bash
 claude mcp add mijn-educatieve-mcp python mcp_server.py
 ```
+
+## Energie Inkoop Optimalisatie (Grafana Analyse)
+
+Voor deze week heb ik in Grafana een uitgebreide analyse toegevoegd om het beste moment te bepalen voor de inkoop van energie. Dit gebeurt op basis van de historische netto-vraag (consumptie min totale productie van zon en wind) en de verhouding tussen productie en consumptie.
+
+- **Koop-score (%)**: Een berekende score waarbij uren met een hoog aanbod (productie) en een relatief lage vraag (consumptie) de hoogste percentages behalen.
+- **Beste bestelmomenten**: Uit de analyse blijkt dat de uren rond de middag (door piek in zonne-productie) en in het weekend (door lager verbruik) de meest gunstige momenten zijn om energie in te kopen.
+
 ## Voorbeeld uivoer
 ### airflow pipeline
 ![airflow pipeline](dag.png)
@@ -147,5 +155,11 @@ claude mcp add mijn-educatieve-mcp python mcp_server.py
 ![grafana visualisatie](grafana.png)
 ### metadata visualisatie in grafana
 ![grafana visualisatie](metadata.png)
+### koop-score tabel (beste inkoopuren)
+![koop-score tabel](koop-score-procent.png)
+### bestelmoment 24 uur (koop-score en correlatie)
+![beste moment per uur](koop-score-24u.png)
+### beste koopdagen (laagste netto-vraag)
+![beste inkoop dagen](beste-dagen-kopen.png)
 ### mcp server test met claude code
 ![mcp server](mcp.png)

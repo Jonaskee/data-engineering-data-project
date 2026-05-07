@@ -106,6 +106,7 @@ Bron: **Open Meteo ECMWF archive-API** live ophalen via `pipelines/zon_hourly.py
                       +------> normalize_units <-+
                                      |
                                      v
+                                     metadata
                                  export_csv
 ```
 
