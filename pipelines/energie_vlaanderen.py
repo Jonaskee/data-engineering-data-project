@@ -16,8 +16,7 @@ VLAANDEREN_URLS = {
 
 REFNIS_URL = "https://statbel.fgov.be/sites/default/files/Over_Statbel_FR/Nomenclaturen/REFNIS_2025.csv"
 
-FILTER_START = "2026-02-01"
-FILTER_END = "2026-02-10"
+from config import FILTER_START, FILTER_END
 
 # =====================================================================
 # 2. HULPFUNCTIES (Voorheen in utils.py en db.py)

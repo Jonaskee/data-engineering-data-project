@@ -25,13 +25,13 @@ def task_elia(**_):
 
 def task_vlaanderen(**_):
     from pipelines.energie_vlaanderen import run_vlaanderen_pipeline
-    run_vlaanderen_pipeline(_get_engine())
+    run_vlaanderen_pipeline(_get_engine(), force_reload=True)
 
 
 def task_kaggle(**_):
     # Skipt netjes als de CSVs niet in data/kaggle/ staan
     from pipelines.kaggle import run_kaggle_pipeline
-    run_kaggle_pipeline(_get_engine())
+    run_kaggle_pipeline(_get_engine(), force_reload=True)
 
 
 def task_consumptie(**_):
@@ -41,12 +41,12 @@ def task_consumptie(**_):
 
 def task_extra_datasets(**_):
     from pipelines.extra_datasets import run_extra_datasets_pipeline
-    run_extra_datasets_pipeline(_get_engine())
+    run_extra_datasets_pipeline(_get_engine(), force_reload=True)
 
 
 def task_zon_hourly(**_):
     from pipelines.zon_hourly import run_zon_hourly_pipeline
-    run_zon_hourly_pipeline(_get_engine())
+    run_zon_hourly_pipeline(_get_engine(), force_reload=True)
 
 
 def task_normalize(**_):
@@ -64,6 +64,18 @@ def task_metadata(**_):
     run_metadata_pipeline(_get_engine())
 
 
+def task_advies_kopen(**_):
+    # Zorg dat het script goed importeert in Airflow context
+    import sys
+    from pathlib import Path
+    project_root = Path("/app")
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    
+    import advies_kopen_dagelijks
+    advies_kopen_dagelijks.bereken_dagelijks_koop_advies()
+
+
 default_args = {
     "owner": "consumptie-groep",
     "retries": 1,
@@ -74,7 +86,7 @@ with DAG(
     dag_id="energie_pipeline",
     description="Haalt Elia + Energie Vlaanderen op, bouwt consumptie-tabel, laadt extra_datasets (productie/wind/zon), exporteert naar CSV.",
     start_date=datetime(2026, 1, 1),
-    schedule=None,  # manueel triggeren
+    schedule="@daily",
     catchup=False,
     default_args=default_args,
     tags=["energie", "data-eng-project"],
@@ -89,6 +101,7 @@ with DAG(
     t_normalize = PythonOperator(task_id="normalize_units", python_callable=task_normalize)
     t_metadata = PythonOperator(task_id="metadata", python_callable=task_metadata)
     t_export = PythonOperator(task_id="export_csv", python_callable=task_export_csv)
+    t_advies = PythonOperator(task_id="advies_kopen", python_callable=task_advies_kopen)
 
     [t_elia, t_vlaanderen, t_kaggle] >> t_consumptie
-    [t_consumptie, t_extra, t_zon] >> t_normalize >> t_metadata >> t_export
+    [t_consumptie, t_extra, t_zon] >> t_normalize >> t_metadata >> [t_export, t_advies]

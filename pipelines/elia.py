@@ -14,10 +14,9 @@ DATASETS = {
 DATE_FILTER = {"start": "2024-01-01", "end": "2025-12-31"}
 
 def build_where_clause(date_field: str = "datetime") -> str | None:
-    start = os.getenv("FILTER_START", DATE_FILTER.get("start"))
-    end = os.getenv("FILTER_END", DATE_FILTER.get("end"))
-    if start and end:
-        return f"{date_field} >= '{start}' AND {date_field} <= '{end}'"
+    from config import FILTER_START, FILTER_END
+    if FILTER_START and FILTER_END:
+        return f"{date_field} >= '{FILTER_START}' AND {date_field} <= '{FILTER_END}'"
     return None
 
 def run_elia_pipeline(engine, force_reload=False):  # <-- Parameter toegevoegd

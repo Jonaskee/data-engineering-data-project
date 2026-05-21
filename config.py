@@ -28,5 +28,7 @@ VLAANDEREN_URLS = {
 REFNIS_URL = "https://statbel.fgov.be/sites/default/files/Over_Statbel_FR/Nomenclaturen/REFNIS_2025.csv"
 
 # Filters
-FILTER_START = os.getenv("FILTER_START", "2026-02-01")
-FILTER_END = os.getenv("FILTER_END", "2026-02-10")
+from datetime import datetime
+
+FILTER_START = os.getenv("FILTER_START", "2024-01-01")
+FILTER_END = os.getenv("FILTER_END", datetime.now().strftime("%Y-%m-%d"))

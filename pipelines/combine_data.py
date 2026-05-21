@@ -31,7 +31,7 @@ def run_consumptie_combine(engine):
         return
 
     sql = f"""
-    DROP TABLE IF EXISTS consumptie;
+    DROP TABLE IF EXISTS consumptie CASCADE;
     CREATE TABLE consumptie AS
     SELECT DATE_TRUNC('hour', datetime::timestamp) AS tijd,
            AVG({load_col}) AS elia_total_load_mw

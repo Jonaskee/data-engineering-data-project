@@ -12,5 +12,7 @@ def get_engine():
 def write_to_db(engine, df: pd.DataFrame, table_name: str, if_exists: str = "replace") -> None:
     """Schrijft een DataFrame weg naar de database."""
     with engine.begin() as conn:
+        if if_exists == "replace":
+            conn.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
         df.to_sql(table_name, con=conn, if_exists=if_exists, index=False)
     print(f"  Geschreven naar tabel: {table_name} ({len(df)} rijen)")

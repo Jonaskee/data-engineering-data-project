@@ -4,7 +4,23 @@ from db import write_to_db
 
 def run_metadata_pipeline(engine):
     print("Start metadata pipeline...")
-    with engine.connect() as conn:
+    with engine.begin() as conn:
+        # Zorg dat de view altijd blijft bestaan, zelfs als we tabellen met CASCADE droppen
+        conn.execute(text("""
+        CREATE OR REPLACE VIEW public.v_productie_consumptie AS
+         SELECT c.tijd,
+            c.elia_total_load_mw AS consumptie_mw,
+            p.elia_zon_mw,
+            p.elia_wind_mw,
+            COALESCE(p.vlaanderen_zon_mw, 0) AS vlaanderen_zon_mw,
+            COALESCE(p.vlaanderen_wind_mw, 0) AS vlaanderen_wind_mw,
+            p.elia_zon_mw + p.elia_wind_mw + COALESCE(p.vlaanderen_zon_mw, 0) + COALESCE(p.vlaanderen_wind_mw, 0) AS totale_productie_mw,
+            c.elia_total_load_mw - (p.elia_zon_mw + p.elia_wind_mw + COALESCE(p.vlaanderen_zon_mw, 0) + COALESCE(p.vlaanderen_wind_mw, 0)) AS netto_vraag_mw
+           FROM consumptie c
+             JOIN productie p ON date_trunc('hour', c.tijd::timestamp) = date_trunc('hour', p.tijd::timestamp)
+          WHERE p.elia_zon_mw IS NOT NULL AND p.elia_wind_mw IS NOT NULL;
+        """))
+
         # Haal alle tabellen in de public schema op (sluit Airflow systeemtabellen uit)
         tables_query = text("""
             SELECT table_name 

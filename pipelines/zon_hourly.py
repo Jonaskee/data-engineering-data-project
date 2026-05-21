@@ -51,8 +51,9 @@ def run_zon_hourly_pipeline(engine, force_reload=False):
         print("  'zon' tabel is al uurlijks (ECMWF). Skipping.")
         return
 
-    start = os.getenv("FILTER_START", "2024-01-01")
-    end = os.getenv("FILTER_END", "2026-03-31")
+    from config import FILTER_START, FILTER_END
+    start = FILTER_START
+    end = FILTER_END
 
     print(f"  Ophalen {start} - {end} (lat={ANTWERPEN_LAT}, lon={ANTWERPEN_LON})")
     try:
